@@ -8,30 +8,13 @@ import { Button } from "@/components/ui/button"
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter } from "@/components/ui/dialog"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
-
-interface Drill {
-  id: string
-  name: string
-  duration: number
-  category: string
-  isWarmUp: boolean
-  isCoolDown: boolean
-  type: string
-  description?: string
-}
+import { Drill } from "@/types/database"
 
 interface Break {
   id: string
   duration: number
   type: 'Break'
 }
-
-const initialDrills: Drill[] = [
-  { id: '1', name: 'Warm-up', duration: 30, category: 'Warm-up', isWarmUp: true, isCoolDown: false, type: 'Conditioning', description: 'A series of light exercises to prepare the body for more intense activity.' },
-  { id: '3', name: '4-corners', duration: 15, category: 'Offense', isWarmUp: false, isCoolDown: false, type: 'Conditioning', description: 'A drill to improve passing and movement off the ball.' },
-  { id: '4', name: 'Defense', duration: 45, category: 'Defense', isWarmUp: false, isCoolDown: false, type: 'Conditioning', description: 'Focused defensive drills to improve individual and team defense.' },
-  { id: '5', name: 'Cool down', duration: 30, category: 'Cool-down', isWarmUp: false, isCoolDown: true, type: 'Conditioning', description: 'Light exercises and stretches to gradually reduce heart rate and prevent muscle stiffness.' },
-]
 
 const typeColors: Record<string, string> = {
   'Warm-up': 'bg-green-300',
@@ -43,7 +26,7 @@ const typeColors: Record<string, string> = {
 }
 
 export default function PracticePlanBuilder() {
-  const [availableDrills, setAvailableDrills] = useState<Drill[]>(initialDrills)
+  const [availableDrills, setAvailableDrills] = useState<Drill[]>([])
   const [timeline, setTimeline] = useState<(Drill | Break)[]>([])
   const [startTime, setStartTime] = useState('17:30')
   const [endTime, setEndTime] = useState('19:00')
@@ -51,14 +34,39 @@ export default function PracticePlanBuilder() {
   const [isDialogOpen, setIsDialogOpen] = useState(false)
   const [editedDuration, setEditedDuration] = useState('')
   const [draggedItem, setDraggedItem] = useState<Drill | Break | null>(null)
+  const [isLoading, setIsLoading] = useState(true)
   const { toast } = useToast()
 
   const supabase = createClient()
 
   useEffect(() => {
-    // TODO: Fetch drills from Supabase
-  }, [])
+    async function fetchDrills() {
+      try {
+        const { data: drills, error } = await supabase
+          .from('drills')
+          .select('*')
+          .is('deleted_at', null)
+          .order('name')
 
+        if (error) {
+          throw error
+        }
+
+        setAvailableDrills(drills)
+      } catch (error) {
+        console.error('Error fetching drills:', error)
+        toast({
+          title: "Error",
+          description: "Failed to load drills. Please try again.",
+          variant: "destructive",
+        })
+      } finally {
+        setIsLoading(false)
+      }
+    }
+
+    fetchDrills()
+  }, [])
   const onDragStart = (e: React.DragEvent, item: Drill | Break, fromTimeline: boolean = false) => {
     e.dataTransfer.setData('text/plain', JSON.stringify({ item, fromTimeline }))
     setDraggedItem(item)
