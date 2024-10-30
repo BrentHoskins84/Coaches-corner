@@ -5,7 +5,6 @@ import { CalendarDays, ClipboardList, Users, Award } from 'lucide-react';
 import Link from 'next/link';
 import { redirect } from 'next/navigation';
 
-// Remove 'use client' directive to make this a Server Component
 export default async function Dashboard() {
   const user = await getUserData();
 
@@ -19,32 +18,32 @@ export default async function Dashboard() {
         Welcome, {user.user_metadata.full_name} - {user.role_name}
       </h1>
 
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-6">
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-6">
         <QuickActionCard
           title="Create Practice Plan"
           icon={<ClipboardList className="h-6 w-6" />}
           href="/practice-plans/create"
         />
         <QuickActionCard
-          title="View Team Roster"
-          icon={<Users className="h-6 w-6" />}
-          href="/team-roster"
-        />
-        <QuickActionCard
           title="Manage Drills"
           icon={<Users className="h-6 w-6" />}
           href="/drills"
         />
-        <QuickActionCard
+        {/* <QuickActionCard
+          title="View Team Roster"
+          icon={<Users className="h-6 w-6" />}
+          href="/team-roster"
+        /> */}
+        {/* <QuickActionCard
           title="Upcoming Events"
           icon={<CalendarDays className="h-6 w-6" />}
           href="/events"
-        />
-        <QuickActionCard
+        /> */}
+        {/* <QuickActionCard
           title="Performance Metrics"
           icon={<Award className="h-6 w-6" />}
           href="/metrics"
-        />
+        /> */}
       </div>
 
       <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
@@ -53,16 +52,16 @@ export default async function Dashboard() {
             <CardTitle>Recent Activity</CardTitle>
           </CardHeader>
           <CardContent>
-            <p>No recent activity to display.</p>
+            <p className="text-muted-foreground">No recent activity to display.</p>
           </CardContent>
         </Card>
         <Card>
           <CardHeader>
             <CardTitle>Team Overview</CardTitle>
           </CardHeader>
-          <CardContent>
-            <p>Team: {user.team_name || 'Not assigned to a team'}</p>
-            <Button className="mt-4" asChild>
+          <CardContent className="space-y-4">
+            <p className="text-muted-foreground">Team: {user.team_name || 'Not assigned to a team'}</p>
+            <Button asChild variant="outline" className="w-full sm:w-auto">
               <Link href="/team-details">View Team Details</Link>
             </Button>
           </CardContent>
@@ -72,18 +71,17 @@ export default async function Dashboard() {
   );
 }
 
-// Keep QuickActionCard as a client component since it has interactivity
 function QuickActionCard({ title, icon, href }: { title: string, icon: React.ReactNode, href: string }) {
   return (
-    <Card>
+    <Card className="flex flex-col">
       <CardHeader>
-        <CardTitle className="flex items-center">
+        <CardTitle className="flex items-center gap-2">
           {icon}
-          <span className="ml-2">{title}</span>
+          <span>{title}</span>
         </CardTitle>
       </CardHeader>
-      <CardContent>
-        <Button asChild>
+      <CardContent className="flex-grow flex flex-col justify-end">
+        <Button asChild variant="outline" className="w-full">
           <Link href={href}>Go to {title}</Link>
         </Button>
       </CardContent>
