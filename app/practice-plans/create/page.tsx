@@ -390,7 +390,7 @@ export default function PracticePlanBuilder() {
   }
 
   return (
-    <div className="container mx-auto p-4 text-white w-full">
+    <div className="container mx-auto p-4 w-full">
       <div className="flex justify-between items-center mb-6">
         <div className="flex items-center gap-4">
           <Button variant="outline" size="sm" asChild>
@@ -410,33 +410,32 @@ export default function PracticePlanBuilder() {
             />
           </div>
         </div>
-        <Button onClick={handleSave} disabled={isSaving}>
+        <Button onClick={handleSave} disabled={isSaving} variant="default">
           <Save className="mr-2 h-4 w-4" />
-          {isSaving ?
 
- 'Saving...' : editId ? 'Save Changes' : 'Create Plan'}
+          {isSaving ? 'Saving...' : editId ? 'Save Changes' : 'Create Plan'}
         </Button>
       </div>
 
       <div className="flex mb-4">
         <div className="mr-4">
-          <Label htmlFor="startTime" className="block text-sm font-medium text-gray-400">Start Time</Label>
+          <Label htmlFor="startTime">Start Time</Label>
           <Input
             type="time"
             id="startTime"
             value={startTime}
             onChange={(e) => setStartTime(e.target.value)}
-            className="mt-1 block w-full rounded-md border-gray-600 bg-gray-800 text-white shadow-sm focus:border-blue-500 focus:ring focus:ring-blue-500 focus:ring-opacity-50"
+            className="mt-1"
           />
         </div>
         <div>
-          <Label htmlFor="endTime" className="block text-sm font-medium text-gray-400">End Time</Label>
+          <Label htmlFor="endTime">End Time</Label>
           <Input
             type="time"
             id="endTime"
             value={endTime}
             onChange={(e) => setEndTime(e.target.value)}
-            className="mt-1 block w-full rounded-md border-gray-600 bg-gray-800 text-white shadow-sm focus:border-blue-500 focus:ring focus:ring-blue-500 focus:ring-opacity-50"
+            className="mt-1"
           />
         </div>
       </div>
@@ -445,7 +444,7 @@ export default function PracticePlanBuilder() {
         <div className="w-full lg:w-1/4 mb-4 lg:mb-0 lg:pr-4">
           <h2 className="text-xl font-semibold mb-2">Available Drills</h2>
           <ul
-            className="bg-gray-800 p-4 rounded-md min-h-[200px]"
+            className="bg-card p-4 rounded-md min-h-[200px] border"
             onDragOver={onDragOver}
             onDrop={(e) => onDrop(e, 'available')}
           >
@@ -454,7 +453,7 @@ export default function PracticePlanBuilder() {
                 key={drill.id}
                 draggable
                 onDragStart={(e) => onDragStart(e, drill)}
-                className={`${typeColors[drill.category] || 'bg-gray-700'} text-gray-900 p-2 mb-2 rounded shadow cursor-move`}
+                className={`${typeColors[drill.category] || 'bg-muted'} p-2 mb-2 rounded shadow cursor-move`}
               >
                 {drill.name} ({drill.duration} min)
               </li>
@@ -467,14 +466,15 @@ export default function PracticePlanBuilder() {
           <div className="mb-2">
             <Button
               onClick={addBreak}
-              className="flex items-center bg-gray-700 hover:bg-gray-600 text-white font-bold"
+              variant="outline"
+              className="flex items-center"
             >
               <PlusCircle className="mr-2" size={16} />
               Add Break
             </Button>
           </div>
           <div
-            className="bg-gray-800 p-4 pt-7 rounded-md overflow-x-auto"
+            className="bg-card border p-4 pt-7 rounded-md overflow-x-auto"
             onDragOver={onDragOver}
             onDrop={(e) => onDrop(e, 'timeline', timeline.length)}
           >
@@ -492,7 +492,7 @@ export default function PracticePlanBuilder() {
                         onDragOver={onDragOver}
                         onDrop={(e) => onDrop(e, 'timeline', index)}
                         onClick={() => item.type === 'drill' && openDrillDetails(item)}
-                        className={`absolute h-14 ${typeColors[item.category] || 'bg-gray-700'} text-gray-900 rounded shadow flex flex-col justify-center items-center text-xs cursor-move overflow-hidden`}
+                        className={`absolute h-14 ${typeColors[item.category] || 'bg-muted'} rounded shadow flex flex-col justify-center items-center text-xs cursor-move overflow-hidden`}
                         style={{
                           left,
                           width,
@@ -518,12 +518,12 @@ export default function PracticePlanBuilder() {
                 </div>
               </div>
               {timeline.length === 0 && (
-                <p className="text-gray-500 mt-8">Drag and drop drills here to build your practice plan.</p>
+                <p className="text-muted-foreground mt-8">Drag and drop drills here to build your practice plan.</p>
               )}
             </div>
           </div>
           <div className="mt-4">
-            <p className="text-gray-400">Available Time: {calculateAvailableTime()} minutes</p>
+            <p className="text-muted-foreground">Available Time: {calculateAvailableTime()} minutes</p>
           </div>
         </div>
       </div>
