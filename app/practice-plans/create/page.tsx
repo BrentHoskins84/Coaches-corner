@@ -1,63 +1,128 @@
 'use client'
 
-import React, { useState, useEffect } from 'react'
+import { useEffect, useState } from 'react'
+import { useRouter, useSearchParams } from 'next/navigation'
 import { createClient } from '@/utils/supabase/client'
-import { PlusCircle } from 'lucide-react'
+import { PlusCircle, Save, ChevronLeft } from 'lucide-react'
 import { useToast } from "@/components/ui/use-toast"
 import { Button } from "@/components/ui/button"
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter } from "@/components/ui/dialog"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { Drill } from "@/types/database"
+import { createPracticePlan, updatePracticePlan } from "@/utils/actions/practice-plans"
+import { getDrillTypes } from "@/utils/actions/drill-types"
+import Link from 'next/link'
 
-interface Break {
-  id: string
-  duration: number
-  type: 'Break'
-}
-
-const typeColors: Record<string, string> = {
-  'Warm-up': 'bg-green-300',
-  'Break': 'bg-gray-300',
-  'Conditioning': 'bg-green-300',
-  'Offense': 'bg-green-300',
-  'Defense': 'bg-green-300',
-  'Cool-down': 'bg-green-300',
+interface TimelineItem {
+  timelineId: string;
+  originalId: string;
+  name: string;
+  duration: number;
+  type: 'drill' | 'break';
+  category?: string;
+  description?: string;
 }
 
 export default function PracticePlanBuilder() {
   const [availableDrills, setAvailableDrills] = useState<Drill[]>([])
-  const [timeline, setTimeline] = useState<(Drill | Break)[]>([])
+  const [timeline, setTimeline] = useState<TimelineItem[]>([])
   const [startTime, setStartTime] = useState('17:30')
   const [endTime, setEndTime] = useState('19:00')
-  const [selectedDrill, setSelectedDrill] = useState<Drill | null>(null)
+  const [selectedDrill, setSelectedDrill] = useState<TimelineItem | null>(null)
   const [isDialogOpen, setIsDialogOpen] = useState(false)
   const [editedDuration, setEditedDuration] = useState('')
-  const [draggedItem, setDraggedItem] = useState<Drill | Break | null>(null)
+  const [draggedItem, setDraggedItem] = useState<TimelineItem | null>(null)
   const [isLoading, setIsLoading] = useState(true)
-  const { toast } = useToast()
+  const [planName, setPlanName] = useState('')
+  const [isSaving, setIsSaving] = useState(false)
+  const [typeColors, setTypeColors] = useState<Record<string, string>>({})
 
+  const { toast } = useToast()
+  const router = useRouter()
+  const searchParams = useSearchParams()
+  const editId = searchParams.get('edit')
   const supabase = createClient()
 
   useEffect(() => {
-    async function fetchDrills() {
+    async function fetchData() {
       try {
-        const { data: drills, error } = await supabase
+        // Fetch available drills
+        const { data: drills, error: drillsError } = await supabase
           .from('drills')
           .select('*')
           .is('deleted_at', null)
           .order('name')
 
-        if (error) {
-          throw error
+        if (drillsError) throw drillsError
+
+        // Fetch drill type colors
+        const { data: colors, error: colorsError } = await getDrillTypes()
+
+        if (colorsError) {
+          toast({
+            title: "Error",
+            description: "Failed to load drill type colors. Using defaults.",
+            variant: "destructive",
+          })
+        } else if (colors) {
+          setTypeColors(colors)
         }
 
         setAvailableDrills(drills)
+
+        // If editing, fetch the practice plan
+        if (editId) {
+          const { data: plan, error: planError } = await supabase
+            .from('practice_plans')
+            .select(`
+              *,
+              practice_plan_items (
+                *,
+                drill:drills (*)
+              )
+            `)
+            .eq('id', editId)
+            .single()
+
+          if (planError) throw planError
+
+          // Set initial state from existing plan
+          setPlanName(plan.name)
+          setStartTime(plan.start_time)
+          setEndTime(plan.end_time)
+
+          // Convert practice plan items to timeline items
+          const timelineItems = plan.practice_plan_items
+            .sort((a, b) => a.order_index - b.order_index)
+            .map(item => {
+              if (item.item_type === 'break') {
+                return {
+                  timelineId: `break-${Date.now()}-${Math.random()}`,
+                  originalId: '',
+                  name: 'Break',
+                  duration: item.duration,
+                  type: 'break' as const
+                }
+              }
+              return {
+                timelineId: `drill-${Date.now()}-${Math.random()}`,
+                originalId: item.drill.id,
+                name: item.drill.name,
+                duration: item.duration,
+                type: 'drill' as const,
+                category: item.drill.category,
+                description: item.drill.description
+              }
+            })
+
+          setTimeline(timelineItems)
+        }
       } catch (error) {
-        console.error('Error fetching drills:', error)
+        console.error('Error fetching data:', error)
         toast({
           title: "Error",
-          description: "Failed to load drills. Please try again.",
+          description: "Failed to load data. Please try again.",
           variant: "destructive",
         })
       } finally {
@@ -65,11 +130,82 @@ export default function PracticePlanBuilder() {
       }
     }
 
-    fetchDrills()
-  }, [])
-  const onDragStart = (e: React.DragEvent, item: Drill | Break, fromTimeline: boolean = false) => {
-    e.dataTransfer.setData('text/plain', JSON.stringify({ item, fromTimeline }))
-    setDraggedItem(item)
+    fetchData()
+  }, [editId, toast])
+
+  const handleSave = async () => {
+    if (!planName.trim()) {
+      toast({
+        title: "Error",
+        description: "Please enter a name for your practice plan.",
+        variant: "destructive",
+      })
+      return
+    }
+
+    setIsSaving(true)
+    try {
+      // Create practice plan items from timeline
+      const items = timeline.map((item, index) => ({
+        drill_id: item.type === 'drill' ? item.originalId : undefined,
+        duration: item.duration,
+        order_index: index,
+        item_type: item.type
+      }))
+
+      const planData = {
+        name: planName,
+        start_time: startTime,
+        end_time: endTime,
+        created_by: (await supabase.auth.getUser()).data.user!.id
+      }
+
+      const { error } = editId
+        ? await updatePracticePlan(editId, planData, items)
+        : await createPracticePlan(planData, items)
+
+      if (error) {
+        throw new Error(error)
+      }
+
+      toast({
+        title: "Success",
+        description: `Practice plan ${editId ? 'updated' : 'created'} successfully!`,
+      })
+
+      router.push('/practice-plans')
+      router.refresh()
+    } catch (error) {
+      console.error('Error saving practice plan:', error)
+      toast({
+        title: "Error",
+        description: `Failed to ${editId ? 'update' : 'create'} practice plan. Please try again.`,
+        variant: "destructive",
+      })
+    } finally {
+      setIsSaving(false)
+    }
+  }
+
+  const onDragStart = (e: React.DragEvent, item: TimelineItem | Drill, fromTimeline: boolean = false) => {
+    let dragItem: TimelineItem;
+
+    if ('timelineId' in item) {
+      dragItem = item;
+    } else {
+      dragItem = {
+        timelineId: `drill-${Date.now()}-${Math.random()}`,
+        originalId: item.id,
+        name: item.name,
+        duration: item.duration,
+        type: 'drill',
+        category: item.category,
+        description: item.description
+      };
+    }
+
+    e.dataTransfer.setData('text/plain', JSON.stringify({ item: dragItem, fromTimeline }))
+    setDraggedItem(dragItem)
   }
 
   const onDragOver = (e: React.DragEvent) => {
@@ -79,14 +215,14 @@ export default function PracticePlanBuilder() {
   const onDrop = (e: React.DragEvent, targetList: 'timeline' | 'available', index?: number) => {
     e.preventDefault()
     const data = JSON.parse(e.dataTransfer.getData('text/plain'))
-    const item: Drill | Break = data.item
+    const item: TimelineItem = data.item
     const fromTimeline: boolean = data.fromTimeline
 
     if (targetList === 'timeline') {
       if (fromTimeline) {
         // Reordering within timeline
         const newTimeline = [...timeline]
-        const oldIndex = newTimeline.findIndex(i => i.id === item.id)
+        const oldIndex = newTimeline.findIndex(i => i.timelineId === item.timelineId)
         newTimeline.splice(oldIndex, 1)
         newTimeline.splice(index!, 0, item)
         setTimeline(newTimeline)
@@ -101,35 +237,38 @@ export default function PracticePlanBuilder() {
           })
           return
         }
+
+        const timelineItem: TimelineItem = {
+          ...item,
+          duration: item.duration > availableTime ? availableTime : item.duration,
+        }
+
         if (item.duration > availableTime) {
-          const adjustedItem = { ...item, duration: availableTime }
-          setTimeline([...timeline.slice(0, index), adjustedItem, ...timeline.slice(index)])
           toast({
             title: "Drill Duration Adjusted",
             description: `The duration of "${item.name}" has been adjusted from ${item.duration} to ${availableTime} minutes due to insufficient time.`,
             variant: "warning",
           })
-        } else {
-          setTimeline([...timeline.slice(0, index), item, ...timeline.slice(index)])
         }
-        setAvailableDrills(availableDrills.filter(d => d.id !== item.id))
+
+        setTimeline([...timeline.slice(0, index), timelineItem, ...timeline.slice(index || timeline.length)])
       }
     } else {
       // Moving from timeline to available drills
-      if ('category' in item) {
-        setAvailableDrills([...availableDrills, item])
-        setTimeline(timeline.filter(t => t.id !== item.id))
-      }
+      setTimeline(timeline.filter(t => t.timelineId !== item.timelineId))
     }
     setDraggedItem(null)
   }
 
   const addBreak = () => {
-    const newBreak: Break = {
-      id: `break-${Date.now()}`,
+    const newBreak: TimelineItem = {
+      timelineId: `break-${Date.now()}-${Math.random()}`,
+      originalId: '',
+      name: 'Break',
       duration: 5,
-      type: 'Break'
+      type: 'break'
     }
+
     const availableTime = calculateAvailableTime()
     if (availableTime === 0) {
       toast({
@@ -139,6 +278,7 @@ export default function PracticePlanBuilder() {
       })
       return
     }
+
     if (newBreak.duration > availableTime) {
       if (availableTime > 0) {
         newBreak.duration = availableTime
@@ -196,7 +336,7 @@ export default function PracticePlanBuilder() {
     return markers
   }
 
-  const openDrillDetails = (drill: Drill) => {
+  const openDrillDetails = (drill: TimelineItem) => {
     setSelectedDrill(drill)
     setEditedDuration(drill.duration.toString())
     setIsDialogOpen(true)
@@ -227,7 +367,7 @@ export default function PracticePlanBuilder() {
       }
 
       const updatedTimeline = timeline.map(item =>
-        item.id === selectedDrill.id ? { ...item, duration: newDuration } : item
+        item.timelineId === selectedDrill.timelineId ? { ...item, duration: newDuration } : item
       )
       setTimeline(updatedTimeline)
       setIsDialogOpen(false)
@@ -239,14 +379,49 @@ export default function PracticePlanBuilder() {
     }
   }
 
+  if (isLoading) {
+    return (
+      <div className="container mx-auto py-6">
+        <div className="flex items-center justify-center h-64">
+          <p className="text-muted-foreground">Loading...</p>
+        </div>
+      </div>
+    )
+  }
+
   return (
     <div className="container mx-auto p-4 text-white w-full">
-      <h1 className="text-2xl font-bold mb-4">Practice Plan Builder</h1>
+      <div className="flex justify-between items-center mb-6">
+        <div className="flex items-center gap-4">
+          <Button variant="outline" size="sm" asChild>
+            <Link href="/practice-plans">
+              <ChevronLeft className="h-4 w-4 mr-2" />
+              Back to Plans
+            </Link>
+          </Button>
+          <div className="space-y-1">
+            <Label htmlFor="planName">Plan Name</Label>
+            <Input
+              id="planName"
+              value={planName}
+              onChange={(e) => setPlanName(e.target.value)}
+              className="w-[300px]"
+              placeholder="Enter plan name..."
+            />
+          </div>
+        </div>
+        <Button onClick={handleSave} disabled={isSaving}>
+          <Save className="mr-2 h-4 w-4" />
+          {isSaving ?
+
+ 'Saving...' : editId ? 'Save Changes' : 'Create Plan'}
+        </Button>
+      </div>
 
       <div className="flex mb-4">
         <div className="mr-4">
-          <label htmlFor="startTime" className="block text-sm font-medium text-gray-400">Start Time</label>
-          <input
+          <Label htmlFor="startTime" className="block text-sm font-medium text-gray-400">Start Time</Label>
+          <Input
             type="time"
             id="startTime"
             value={startTime}
@@ -255,8 +430,8 @@ export default function PracticePlanBuilder() {
           />
         </div>
         <div>
-          <label htmlFor="endTime" className="block text-sm font-medium text-gray-400">End Time</label>
-          <input
+          <Label htmlFor="endTime" className="block text-sm font-medium text-gray-400">End Time</Label>
+          <Input
             type="time"
             id="endTime"
             value={endTime}
@@ -279,7 +454,7 @@ export default function PracticePlanBuilder() {
                 key={drill.id}
                 draggable
                 onDragStart={(e) => onDragStart(e, drill)}
-                className={`${typeColors[drill.type] || 'bg-gray-700'} text-gray-900 p-2 mb-2 rounded shadow cursor-move`}
+                className={`${typeColors[drill.category] || 'bg-gray-700'} text-gray-900 p-2 mb-2 rounded shadow cursor-move`}
               >
                 {drill.name} ({drill.duration} min)
               </li>
@@ -311,28 +486,28 @@ export default function PracticePlanBuilder() {
                     const { left, width } = calculateDrillPosition(index)
                     return (
                       <div
-                        key={`${item.id}-${index}`}
+                        key={item.timelineId}
                         draggable
                         onDragStart={(e) => onDragStart(e, item, true)}
                         onDragOver={onDragOver}
                         onDrop={(e) => onDrop(e, 'timeline', index)}
-                        onClick={() => 'category' in item && openDrillDetails(item)}
-                        className={`absolute h-14 ${typeColors[item.type] || 'bg-gray-700'} text-gray-900 rounded shadow flex flex-col justify-center items-center text-xs cursor-move overflow-hidden`}
+                        onClick={() => item.type === 'drill' && openDrillDetails(item)}
+                        className={`absolute h-14 ${typeColors[item.category] || 'bg-gray-700'} text-gray-900 rounded shadow flex flex-col justify-center items-center text-xs cursor-move overflow-hidden`}
                         style={{
                           left,
                           width,
                           top: `${index * 60}px`,
-                          opacity: draggedItem === item ? 0.5 : 1,
+                          opacity: draggedItem?.timelineId === item.timelineId ? 0.5 : 1,
                         }}
                       >
-                        {item.type === 'Break' ? (
+                        {item.type === 'break' ? (
                           <>
                             <span className="font-semibold">{item.duration}</span>
                             <span>min</span>
                           </>
                         ) : (
                           <>
-                            <span  className="font-semibold">{item.name}</span>
+                            <span className="font-semibold">{item.name}</span>
                             <span>{item.duration} min</span>
                             <span>{formatTimelineTime(timeline.slice(0, index).reduce((sum, d) => sum + d.duration, 0))}</span>
                           </>
@@ -361,7 +536,6 @@ export default function PracticePlanBuilder() {
           <DialogDescription>
             <p>{selectedDrill?.description}</p>
             <p>Category: {selectedDrill?.category}</p>
-            <p>Type: {selectedDrill?.type}</p>
           </DialogDescription>
           <div className="grid gap-4 py-4">
             <div className="grid grid-cols-4 items-center gap-4">

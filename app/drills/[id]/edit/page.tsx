@@ -1,5 +1,5 @@
 import { getDrillById } from "@/utils/actions/drills"
-import { EditDrillForm } from "@/components/drills/edit-drills-form"
+import { DrillForm } from "@/components/drills/drill-form"
 import { redirect } from "next/navigation"
 
 interface EditDrillPageProps {
@@ -7,7 +7,7 @@ interface EditDrillPageProps {
 }
 
 export default async function EditDrillPage({ params }: EditDrillPageProps) {
-    const { id } = await params
+  const { id } = params
   const { data: drill, error } = await getDrillById(id)
 
   if (error || !drill) {
@@ -16,7 +16,7 @@ export default async function EditDrillPage({ params }: EditDrillPageProps) {
 
   return (
     <div className="container mx-auto py-6">
-      <EditDrillForm drill={drill} />
+      <DrillForm mode="edit" drill={drill} />
     </div>
   )
 }

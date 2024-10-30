@@ -23,7 +23,7 @@ export default async function Dashboard() {
         <QuickActionCard
           title="Create Practice Plan"
           icon={<ClipboardList className="h-6 w-6" />}
-          href="/practice-plan-builder"
+          href="/practice-plans/create"
         />
         <QuickActionCard
           title="View Team Roster"

@@ -89,3 +89,42 @@ export interface Drill {
 }
 
 export type DrillInsert = Omit<Drill, 'id' | 'created_at' | 'updated_at' | 'deleted_at'>;
+
+// ... existing types ...
+
+export interface PracticePlan {
+  id: string;
+  name: string;
+  created_by: string;
+  start_time: string;
+  end_time: string;
+  created_at: string;
+  updated_at: string;
+  deleted_at?: string;
+}
+
+export interface PracticePlanItem {
+  id: string;
+  practice_plan_id: string;
+  drill_id?: string;
+  duration: number;
+  order_index: number;
+  item_type: 'drill' | 'break';
+  created_at: string;
+  updated_at: string;
+}
+
+export type PracticePlanInsert = Omit<PracticePlan, 'id' | 'created_at' | 'updated_at' | 'deleted_at'>;
+export type PracticePlanItemInsert = Omit<PracticePlanItem, 'id' | 'created_at' | 'updated_at'>;
+
+
+// Add to existing types
+export type DrillType = 'Warm-up' | 'Break' | 'Conditioning' | 'Offense' | 'Defense' | 'Cool-down';
+
+export interface DrillTypeConfig {
+    id: string;
+    name: DrillType;
+    color_class: string;
+    created_at: string;
+    updated_at: string;
+}
