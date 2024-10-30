@@ -39,3 +39,25 @@ export async function getUserData() {
 
     return enhancedUser;
 }
+
+export async function getUserFullName(userId: string) {
+    try {
+        const supabase = await createClient();
+
+        // Call the RPC function to get the user's full name
+        const { data, error } = await supabase
+            .rpc('get_user_full_name', {
+                user_id: userId
+            });
+
+        if (error) {
+            console.error('Error fetching user full name:', error);
+            return 'Unknown User';
+        }
+
+        return data || 'Unknown User';
+    } catch (error) {
+        console.error('Error getting user full name:', error);
+        return 'Unknown User';
+    }
+}
