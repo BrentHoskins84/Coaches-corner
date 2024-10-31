@@ -2,12 +2,12 @@ import { getDrillById } from "@/utils/actions/drills"
 import { DrillForm } from "@/components/drills/drill-form"
 import { redirect } from "next/navigation"
 
-interface PageProps {
-  params: { id: string };
-  searchParams: { [key: string]: string | string[] | undefined };
+type PageProps = {
+  params: Promise<{ id: string }>;
+  searchParams: Promise<{ [key: string]: string | string[] | undefined }>;
 }
 
-export default async function EditDrillPage({ params }: PageProps) {
+export default async function EditDrillPage({ params, searchParams }: PageProps) {
   const { id } = await params
   const { data: drill, error } = await getDrillById(id)
 

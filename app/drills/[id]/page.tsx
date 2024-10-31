@@ -14,7 +14,27 @@ import {
 } from "lucide-react"
 
 interface DrillPageProps {
-  params: { id: string }
+  params: Promise<{ id: string }>
+}
+
+interface Drill {
+  id: string
+  name: string
+  description: string
+  duration: number
+  min_players: number
+  max_players: number
+  difficulty_level: 'Beginner' | 'Intermediate' | 'Advanced'
+  sport: string
+  objectives: string[]
+  key_coaching_points: string[]
+  equipment_needed: string[]
+  space_required?: string
+  age_group: string
+  progression?: string
+  safety_considerations?: string
+  is_warm_up: boolean
+  is_cool_down: boolean
 }
 
 export default async function DrillPage({ params }: DrillPageProps) {
@@ -24,6 +44,8 @@ export default async function DrillPage({ params }: DrillPageProps) {
   if (error || !drill) {
     redirect('/drills')
   }
+
+  const typedDrill = drill as Drill
 
   return (
     <div className="container mx-auto py-6">
@@ -35,10 +57,10 @@ export default async function DrillPage({ params }: DrillPageProps) {
               Back to Drills
             </Link>
           </Button>
-          <h1 className="text-3xl font-bold">{drill.name}</h1>
+          <h1 className="text-3xl font-bold">{typedDrill.name}</h1>
         </div>
         <Button asChild>
-          <Link href={`/drills/${drill.id}/edit`}>
+          <Link href={`/drills/${typedDrill.id}/edit`}>
             <Edit className="h-4 w-4 mr-2" />
             Edit Drill
           </Link>
@@ -53,7 +75,7 @@ export default async function DrillPage({ params }: DrillPageProps) {
               <CardTitle>Description</CardTitle>
             </CardHeader>
             <CardContent>
-              <p className="text-muted-foreground">{drill.description}</p>
+              <p className="text-muted-foreground">{typedDrill.description}</p>
             </CardContent>
           </Card>
 
@@ -66,28 +88,28 @@ export default async function DrillPage({ params }: DrillPageProps) {
               <div className="flex items-center gap-2">
                 <Clock className="h-4 w-4 text-muted-foreground" />
                 <span className="font-medium">Duration:</span>
-                <span>{drill.duration} minutes</span>
+                <span>{typedDrill.duration} minutes</span>
               </div>
               <div className="flex items-center gap-2">
                 <Users className="h-4 w-4 text-muted-foreground" />
                 <span className="font-medium">Players:</span>
-                <span>{drill.min_players} - {drill.max_players} players</span>
+                <span>{typedDrill.min_players} - {typedDrill.max_players} players</span>
               </div>
               <div className="flex items-center gap-2">
                 <Target className="h-4 w-4 text-muted-foreground" />
                 <span className="font-medium">Difficulty:</span>
                 <Badge variant={
-                  drill.difficulty_level === 'Beginner' ? 'secondary' :
-                  drill.difficulty_level === 'Intermediate' ? 'default' :
+                  typedDrill.difficulty_level === 'Beginner' ? 'secondary' :
+                  typedDrill.difficulty_level === 'Intermediate' ? 'default' :
                   'destructive'
                 }>
-                  {drill.difficulty_level}
+                  {typedDrill.difficulty_level}
                 </Badge>
               </div>
               <div className="flex items-center gap-2">
                 <Dumbbell className="h-4 w-4 text-muted-foreground" />
                 <span className="font-medium">Sport:</span>
-                <span>{drill.sport}</span>
+                <span>{typedDrill.sport}</span>
               </div>
             </CardContent>
           </Card>
@@ -101,7 +123,7 @@ export default async function DrillPage({ params }: DrillPageProps) {
               <div>
                 <h3 className="font-semibold mb-2">Objectives</h3>
                 <ul className="list-disc list-inside space-y-1">
-                  {drill.objectives?.map((objective, index) => (
+                  {typedDrill.objectives.map((objective: string, index: number) => (
                     <li key={index} className="text-muted-foreground">{objective}</li>
                   ))}
                 </ul>
@@ -109,7 +131,7 @@ export default async function DrillPage({ params }: DrillPageProps) {
               <div>
                 <h3 className="font-semibold mb-2">Key Coaching Points</h3>
                 <ul className="list-disc list-inside space-y-1">
-                  {drill.key_coaching_points?.map((point, index) => (
+                  {typedDrill.key_coaching_points.map((point: string, index: number) => (
                     <li key={index} className="text-muted-foreground">{point}</li>
                   ))}
                 </ul>
@@ -129,15 +151,15 @@ export default async function DrillPage({ params }: DrillPageProps) {
               <div>
                 <h3 className="font-semibold mb-2">Equipment Needed</h3>
                 <div className="flex flex-wrap gap-2">
-                  {drill.equipment_needed?.map((equipment, index) => (
+                  {typedDrill.equipment_needed.map((equipment: string, index: number) => (
                     <Badge key={index} variant="outline">{equipment}</Badge>
                   ))}
                 </div>
               </div>
-              {drill.space_required && (
+              {typedDrill.space_required && (
                 <div>
                   <h3 className="font-semibold mb-2">Space Required</h3>
-                  <p className="text-muted-foreground">{drill.space_required}</p>
+                  <p className="text-muted-foreground">{typedDrill.space_required}</p>
                 </div>
               )}
             </CardContent>
@@ -151,25 +173,25 @@ export default async function DrillPage({ params }: DrillPageProps) {
             <CardContent className="grid gap-4">
               <div>
                 <h3 className="font-semibold mb-2">Age Group</h3>
-                <p className="text-muted-foreground">{drill.age_group}</p>
+                <p className="text-muted-foreground">{typedDrill.age_group}</p>
               </div>
-              {drill.progression && (
+              {typedDrill.progression && (
                 <div>
                   <h3 className="font-semibold mb-2">Progression</h3>
-                  <p className="text-muted-foreground">{drill.progression}</p>
+                  <p className="text-muted-foreground">{typedDrill.progression}</p>
                 </div>
               )}
-              {drill.safety_considerations && (
+              {typedDrill.safety_considerations && (
                 <div>
                   <h3 className="font-semibold mb-2">Safety Considerations</h3>
-                  <p className="text-muted-foreground">{drill.safety_considerations}</p>
+                  <p className="text-muted-foreground">{typedDrill.safety_considerations}</p>
                 </div>
               )}
               <div className="flex flex-col gap-2">
-                {drill.is_warm_up && (
+                {typedDrill.is_warm_up && (
                   <Badge variant="secondary">Suitable for Warm-up</Badge>
                 )}
-                {drill.is_cool_down && (
+                {typedDrill.is_cool_down && (
                   <Badge variant="secondary">Suitable for Cool-down</Badge>
                 )}
               </div>

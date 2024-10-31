@@ -17,9 +17,15 @@ import { FilterBar } from "@/components/drills/filter-bar"
 import Link from "next/link"
 import { Drill } from "@/types/database"
 
-const categoryColors = {
+type DrillCategory = 'Offense' | 'Defense' | 'Warm-up' | 'Cool-down' | 'Conditioning' | 'Team Building'
+
+const categoryColors: Record<DrillCategory, string> = {
   'Offense': 'bg-blue-500/20 text-blue-500',
-  'Defense': 'bg-red-500/20 text-red-500'
+  'Defense': 'bg-red-500/20 text-red-500',
+  'Warm-up': 'bg-yellow-500/20 text-yellow-500',
+  'Cool-down': 'bg-green-500/20 text-green-500',
+  'Conditioning': 'bg-purple-500/20 text-purple-500',
+  'Team Building': 'bg-pink-500/20 text-pink-500'
 }
 
 export default function DrillsPage() {
@@ -163,7 +169,7 @@ export default function DrillsPage() {
                       </Link>
                     </TableCell>
                     <TableCell>
-                      <span className={`inline-flex items-center rounded-full px-2.5 py-0.5 text-xs font-medium ${categoryColors[drill.category] || 'bg-gray-700'}`}>
+                      <span className={`inline-flex items-center rounded-full px-2.5 py-0.5 text-xs font-medium ${categoryColors[drill.category as DrillCategory] || 'bg-gray-700'}`}>
                         {drill.category}
                       </span>
                     </TableCell>
