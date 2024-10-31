@@ -10,9 +10,10 @@ import { Label } from "@/components/ui/label"
 import { Textarea } from "@/components/ui/textarea"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { Switch } from "@/components/ui/switch"
-import { Drill, DrillCategory, DifficultyLevel, IntensityLevel, DrillTypeConfig } from "@/types/database"
+import { Drill, DrillCategory, DifficultyLevel, IntensityLevel, DrillTypeConfig, DrillInsert, DrillType } from "@/types/database"
 import { createDrill, updateDrill } from "@/utils/actions/drills"
 import { getDrillTypes } from "@/utils/actions/drill-types"
+import { createClient } from '@/utils/supabase/client'
 
 interface DrillFormProps {
   drill?: Drill;
@@ -24,6 +25,7 @@ export function DrillForm({ drill, mode }: DrillFormProps) {
   const { toast } = useToast()
   const [isSubmitting, setIsSubmitting] = useState(false)
   const [drillTypes, setDrillTypes] = useState<DrillTypeConfig[]>([])
+  const supabase = createClient()
 
   useEffect(() => {
     async function fetchDrillTypes() {
@@ -35,11 +37,13 @@ export function DrillForm({ drill, mode }: DrillFormProps) {
           variant: "destructive",
         })
       } else if (data) {
-        // Convert the data back to an array if it's not already
-        const typesArray = Object.entries(data).map(([name, color_class]) => ({
-          id: name, // Using name as id since we don't have a separate id
-          name,
-          color_class
+        // Convert the data to DrillTypeConfig array
+        const typesArray: DrillTypeConfig[] = Object.entries(data).map(([name, color_class]) => ({
+          id: name,
+          name: name as DrillType, // Cast the name to DrillType
+          color_class,
+          created_at: new Date().toISOString(),
+          updated_at: new Date().toISOString()
         }))
         setDrillTypes(typesArray)
       }
@@ -59,32 +63,38 @@ export function DrillForm({ drill, mode }: DrillFormProps) {
         return value.split(',').map(item => item.trim()).filter(Boolean)
       }
 
-      const drillData = {
+      const user = await supabase.auth.getUser()
+      if (!user.data.user) {
+        throw new Error("User not authenticated")
+      }
+
+      const drillData: DrillInsert = {
         name: formData.get('name') as string,
         description: formData.get('description') as string,
         duration: parseInt(formData.get('duration') as string),
         category: formData.get('category') as DrillCategory,
-        type: formData.get('type') as string,
+        type: formData.get('type') as DrillType,
         difficulty_level: formData.get('difficulty_level') as DifficultyLevel,
         age_group: formData.get('age_group') as string,
         min_players: parseInt(formData.get('min_players') as string),
         max_players: parseInt(formData.get('max_players') as string),
         equipment_needed: safeStringSplit(formData.get('equipment_needed') as string),
-        space_required: formData.get('space_required') as string || null,
+        space_required: formData.get('space_required') as string || undefined,
         objectives: safeStringSplit(formData.get('objectives') as string),
         key_coaching_points: safeStringSplit(formData.get('key_coaching_points') as string),
-        progression: formData.get('progression') as string || null,
+        progression: formData.get('progression') as string || undefined,
         sport: formData.get('sport') as string,
         position_specificity: safeStringSplit(formData.get('position_specificity') as string),
-        tactical_element: formData.get('tactical_element') as string || null,
-        visual_aid: formData.get('visual_aid') as string || null,
-        intensity_level: formData.get('intensity_level') as IntensityLevel || null,
+        tactical_element: formData.get('tactical_element') as string || undefined,
+        visual_aid: formData.get('visual_aid') as string || undefined,
+        intensity_level: formData.get('intensity_level') as IntensityLevel || undefined,
         is_warm_up: formData.get('is_warm_up') === 'on',
         is_cool_down: formData.get('is_cool_down') === 'on',
         metrics_for_evaluation: safeStringSplit(formData.get('metrics_for_evaluation') as string),
-        safety_considerations: formData.get('safety_considerations') as string || null,
+        safety_considerations: formData.get('safety_considerations') as string || undefined,
         is_public: formData.get('is_public') === 'on',
-        tags: safeStringSplit(formData.get('tags') as string)
+        tags: safeStringSplit(formData.get('tags') as string),
+        created_by: user.data.user.id
       }
 
       let result;
@@ -280,6 +290,93 @@ export function DrillForm({ drill, mode }: DrillFormProps) {
                 name="sport"
                 defaultValue={drill?.sport}
                 required
+              />
+            </div>
+
+            <div>
+              <Label htmlFor="space_required">Space Required</Label>
+              <Input
+                id="space_required"
+                name="space_required"
+                defaultValue={drill?.space_required || ''}
+              />
+            </div>
+
+            <div>
+              <Label htmlFor="progression">Progression</Label>
+              <Textarea
+                id="progression"
+                name="progression"
+                defaultValue={drill?.progression || ''}
+              />
+            </div>
+
+            <div>
+              <Label htmlFor="position_specificity">Position Specificity (comma-separated)</Label>
+              <Input
+                id="position_specificity"
+                name="position_specificity"
+                defaultValue={drill?.position_specificity?.join(', ')}
+              />
+            </div>
+
+            <div>
+              <Label htmlFor="tactical_element">Tactical Element</Label>
+              <Input
+                id="tactical_element"
+                name="tactical_element"
+                defaultValue={drill?.tactical_element || ''}
+              />
+            </div>
+
+            <div>
+              <Label htmlFor="visual_aid">Visual Aid URL</Label>
+              <Input
+                id="visual_aid"
+                name="visual_aid"
+                type="url"
+                defaultValue={drill?.visual_aid || ''}
+              />
+            </div>
+
+            <div>
+              <Label htmlFor="intensity_level">Intensity Level</Label>
+              <Select name="intensity_level" defaultValue={drill?.intensity_level}>
+                <SelectTrigger>
+                  <SelectValue placeholder="Select intensity level" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="Low">Low</SelectItem>
+                  <SelectItem value="Medium">Medium</SelectItem>
+                  <SelectItem value="High">High</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+
+            <div>
+              <Label htmlFor="metrics_for_evaluation">Metrics for Evaluation (comma-separated)</Label>
+              <Textarea
+                id="metrics_for_evaluation"
+                name="metrics_for_evaluation"
+                defaultValue={drill?.metrics_for_evaluation?.join(', ')}
+              />
+            </div>
+
+            <div>
+              <Label htmlFor="safety_considerations">Safety Considerations</Label>
+              <Textarea
+                id="safety_considerations"
+                name="safety_considerations"
+                defaultValue={drill?.safety_considerations || ''}
+              />
+            </div>
+
+            <div>
+              <Label htmlFor="tags">Tags (comma-separated)</Label>
+              <Input
+                id="tags"
+                name="tags"
+                defaultValue={drill?.tags?.join(', ')}
               />
             </div>
 
