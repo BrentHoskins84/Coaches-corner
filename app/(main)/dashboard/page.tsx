@@ -61,9 +61,9 @@ export default async function Dashboard() {
           </CardHeader>
           <CardContent className="space-y-4">
             <p className="text-muted-foreground">Team: {user.team_name || 'Not assigned to a team'}</p>
-            <Button asChild variant="outline" className="w-full sm:w-auto">
+            {/* <Button asChild variant="outline" className="w-full sm:w-auto">
               <Link href="/team-details">View Team Details</Link>
-            </Button>
+            </Button> */}
           </CardContent>
         </Card>
       </div>
