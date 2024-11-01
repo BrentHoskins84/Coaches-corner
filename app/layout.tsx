@@ -54,9 +54,7 @@ export default function RootLayout({
                   </div>
                 </div>
               </nav>
-              <div className="flex flex-col gap-20 max-w-5xl p-5 w-full">
-                {children}
-              </div>
+              {children}
               <Toaster />
               <footer className="w-full border-t">
                 <div className="max-w-5xl mx-auto py-8 px-5 flex items-center justify-between">
