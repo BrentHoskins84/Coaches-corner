@@ -26,6 +26,7 @@ import {
   AlertDialogTitle,
   AlertDialogTrigger,
 } from "@/components/ui/alert-dialog"
+import Loading from "@/components/loading"
 
 interface PracticePlanItem {
   id: string;
@@ -93,7 +94,17 @@ export default function PracticePlansPage() {
   }
 
   if (isLoading) {
-    return <div>Loading...</div>
+    return (
+      <div className="container mx-auto py-6">
+        <div className="flex items-center justify-center h-64">
+          <Loading
+            message="Loading drills..."
+            dotSize={16}
+            dotGap={6}
+          />
+        </div>
+      </div>
+    )
   }
 
   if (error) {
