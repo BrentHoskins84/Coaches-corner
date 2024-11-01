@@ -16,6 +16,7 @@ import { Plus, Clock, Users, Dumbbell } from "lucide-react"
 import { FilterBar } from "@/components/drills/filter-bar"
 import Link from "next/link"
 import { Drill } from "@/types/database"
+import Loading from "@/components/loading"
 
 type DrillCategory = 'Offense' | 'Defense' | 'Warm-up' | 'Cool-down' | 'Conditioning' | 'Team Building'
 
@@ -102,7 +103,11 @@ export default function DrillsPage() {
     return (
       <div className="container mx-auto py-6">
         <div className="flex items-center justify-center h-64">
-          <p className="text-muted-foreground">Loading...</p>
+          <Loading
+            message="Loading drills..."
+            dotSize={16}
+            dotGap={6}
+          />
         </div>
       </div>
     )

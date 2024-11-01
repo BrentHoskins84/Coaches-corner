@@ -20,9 +20,9 @@ export default async function Dashboard() {
 
       <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-6">
         <QuickActionCard
-          title="Create Practice Plan"
+          title="Manage Practice Plan"
           icon={<ClipboardList className="h-6 w-6" />}
-          href="/practice-plans/create"
+          href="/practice-plans"
         />
         <QuickActionCard
           title="Manage Drills"

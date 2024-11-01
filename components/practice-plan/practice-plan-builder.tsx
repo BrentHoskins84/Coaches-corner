@@ -13,6 +13,7 @@ import { Drill, PracticePlanItemInsert } from "@/types/database"
 import { createPracticePlan, updatePracticePlan } from "@/utils/actions/practice-plans"
 import { getDrillTypes } from "@/utils/actions/drill-types"
 import Link from 'next/link'
+import Loading from "@/components/loading"
 
 interface TimelineItem {
   timelineId: string;
@@ -371,7 +372,11 @@ export default function PracticePlanBuilder({ editId, initialData }: PracticePla
     return (
       <div className="container mx-auto py-6">
         <div className="flex items-center justify-center h-64">
-          <p className="text-muted-foreground">Loading...</p>
+          <Loading
+            message="Loading drills..."
+            dotSize={16}
+            dotGap={6}
+          />
         </div>
       </div>
     )
