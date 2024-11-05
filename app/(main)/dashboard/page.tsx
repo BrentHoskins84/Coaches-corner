@@ -1,7 +1,7 @@
 import { getUserData } from "@/utils/getUserData";
 import { Button } from "@/components/ui/button";
 import { Card, CardHeader, CardTitle, CardContent } from "@/components/ui/card";
-import { CalendarDays, ClipboardList, Users, Award } from 'lucide-react';
+import { CalendarDays, ClipboardList, Users, Award, Settings, UserPlus } from 'lucide-react';
 import Link from 'next/link';
 import { redirect } from 'next/navigation';
 
@@ -12,13 +12,15 @@ export default async function Dashboard() {
     return redirect("/sign-in");
   }
 
+  const isAdmin = user.role_name === 'Administrator';
+
   return (
     <div className="container mx-auto p-6">
       <h1 className="text-3xl font-bold mb-6">
         Welcome, {user.user_metadata.full_name} - {user.role_name}
       </h1>
 
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-6">
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 mb-6">
         <QuickActionCard
           title="Manage Practice Plan"
           icon={<ClipboardList className="h-6 w-6" />}
@@ -29,6 +31,20 @@ export default async function Dashboard() {
           icon={<Users className="h-6 w-6" />}
           href="/drills"
         />
+        {isAdmin && (
+          <>
+            <QuickActionCard
+              title="Manage Teams"
+              icon={<Settings className="h-6 w-6" />}
+              href="/teams"
+            />
+            <QuickActionCard
+              title="Manage Users"
+              icon={<UserPlus className="h-6 w-6" />}
+              href="/users"
+            />
+          </>
+        )}
         {/* <QuickActionCard
           title="View Team Roster"
           icon={<Users className="h-6 w-6" />}
